@@ -1,0 +1,8 @@
+# customsubcategory=paths=Paths
+# customsubcategory=features=Features
+
+# cat=basic/paths/; type=string; label=Error page template: The path to the error page template. If empty TYPO3 default will be used.
+errorPageTemplate =
+
+# cat=basic/features/; type=boolean; label=Register error handlers: Overwrites the TYPO3 error handlers to improve 404 / 403 error detection.
+registerErrorHandlers = 0

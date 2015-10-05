@@ -1,0 +1,11 @@
+{
+	"name": "de-intera-typo3-extension/errortuner",
+	"type": "typo3-cms-extension",
+	"description": "Improved error handling and redirection to the login page.",
+	"license": ["GPL-3.0+"],
+	"autoload": {
+        "psr-4": {
+            "Tx\\Errortuner\\": "Classes"
+        }
+    }
+}
