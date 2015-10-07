@@ -157,6 +157,7 @@ class FrontendErrorHandler {
 	 */
 	protected function handlePageError($code, $header, $reason) {
 		$this->frontendController->pageErrorHandler($code, $header, $reason);
+		die();
 	}
 
 	/**
