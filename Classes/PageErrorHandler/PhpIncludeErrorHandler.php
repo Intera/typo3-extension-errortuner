@@ -53,7 +53,7 @@ class PhpIncludeErrorHandler extends AbstractPhpIncludeHandler implements PageEr
 
         $this->handleSolrRequest($this->statusCode, $message);
 
-        $errorContents = $this->includeErrorFile($this->statusCode);
+        $errorContents = $this->includeErrorFile($this->statusCode, $message);
 
         $headers = $GLOBALS['TYPO3_CONF_VARS']['FE'][$headerConfigKey] ?? '';
         if (empty($headers)) {
