@@ -14,13 +14,28 @@ use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 class AccessDeniedErrorHandler implements PageErrorHandlerInterface
 {
     /**
+     * @var array
+     */
+    private $errorHandlerConfiguration;
+
+    /**
+     * @var int
+     */
+    private $statusCode;
+
+    /**
      * @var TypoScriptFrontendController|null
      */
-    private $frontendController;
+    private $tsfe;
 
-    public function __construct(?TypoScriptFrontendController $tsfe = null)
-    {
-        $this->frontendController = $tsfe ?? $GLOBALS['TSFE'];
+    public function __construct(
+        int $statusCode,
+        array $errorHandlerConfiguration,
+        ?TypoScriptFrontendController $tsfe = null
+    ) {
+        $this->errorHandlerConfiguration = $errorHandlerConfiguration;
+        $this->statusCode = $statusCode;
+        $this->tsfe = $tsfe ?? $GLOBALS['TSFE'];
     }
 
     public function handlePageError(
@@ -33,8 +48,8 @@ class AccessDeniedErrorHandler implements PageErrorHandlerInterface
             return $redirectResponse;
         }
 
-        $includeErrorHandler = GeneralUtility::makeInstance(PhpIncludeErrorHandler::class);
-        return $includeErrorHandler->handlePageError($request, 403, $message, $reasons);
+        $includeErrorHandler = GeneralUtility::makeInstance(PhpIncludeErrorHandler::class, 403, []);
+        return $includeErrorHandler->handlePageError($request, $message, $reasons);
     }
 
     /**
@@ -45,22 +60,22 @@ class AccessDeniedErrorHandler implements PageErrorHandlerInterface
      */
     private function getLoginPageRedirectResponse(): ?RedirectResponse
     {
-        if (!$this->frontendController) {
+        if (!$this->tsfe) {
             return null;
         }
 
-        if (!empty($this->frontendController->fe_user->user['uid'])) {
+        if (!empty($this->tsfe->fe_user->user['uid'])) {
             // If a user is already logged in we do not redirect. He simply does
             // not have enough access rights.
-            $currentUserUid = (integer)$this->frontendController->fe_user->user['uid'];
+            $currentUserUid = (integer)$this->tsfe->fe_user->user['uid'];
             if ($currentUserUid !== 0) {
                 return null;
             }
         }
 
-        $this->frontendController->getConfigArray();
+        $this->tsfe->getConfigArray();
 
-        $template = $this->frontendController->tmpl;
+        $template = $this->tsfe->tmpl;
 
         if (!isset($template->setup['config.']['tx_errortuner.']['loginPageUrl'])) {
             return null;
@@ -69,8 +84,8 @@ class AccessDeniedErrorHandler implements PageErrorHandlerInterface
         $targetUrl = $template->setup['config.']['tx_errortuner.']['loginPageUrl'];
         if (isset($template->setup['config.']['tx_errortuner.']['loginPageUrl.'])) {
             $contentObject = GeneralUtility::makeInstance(ContentObjectRenderer::class);
-            $this->frontendController->tmpl = $template;
-            $this->frontendController->config = $template->setup['config.'];
+            $this->tsfe->tmpl = $template;
+            $this->tsfe->config = $template->setup['config.'];
             $targetUrl = $contentObject->cObjGetSingle(
                 $targetUrl,
                 $template->setup['config.']['tx_errortuner.']['loginPageUrl.']

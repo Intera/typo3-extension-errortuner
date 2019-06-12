@@ -10,64 +10,57 @@ use RuntimeException;
 use TYPO3\CMS\Core\Error\Http\PageNotFoundException;
 use TYPO3\CMS\Core\Error\Http\ServiceUnavailableException;
 use TYPO3\CMS\Core\Error\Http\StatusException;
+use TYPO3\CMS\Core\Error\PageErrorHandler\PageErrorHandlerInterface;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-class PhpIncludeErrorHandler
+class PhpIncludeErrorHandler extends AbstractPhpIncludeHandler implements PageErrorHandlerInterface
 {
+    /**
+     * @var array
+     */
+    private $errorHandlerConfiguration;
+
+    /**
+     * @var int
+     */
+    private $statusCode;
+
+    public function __construct(int $statusCode, array $errorHandlerConfiguration)
+    {
+        $this->statusCode = $statusCode;
+        $this->errorHandlerConfiguration = $errorHandlerConfiguration;
+    }
+
     public function handlePageError(
         ServerRequestInterface $request,
-        int $errorCode,
         string $message,
         array $reasons = []
     ): ResponseInterface {
-        switch ($errorCode) {
+        switch ($this->statusCode) {
             case 403:
-                $configKey = 'pageNotFound_handling_accessdenied';
                 $headerConfigKey = 'pageNotFound_handling_accessdeniedheader';
                 break;
             case 404:
-                $configKey = 'pageNotFound_handling';
                 $headerConfigKey = 'pageNotFound_handling_statheader';
                 break;
             case 500:
-                $configKey = 'pageUnavailable_handling';
                 $headerConfigKey = 'pageUnavailable_handling_statheader';
                 break;
             default:
-                throw new InvalidArgumentException('Can not handle erorr code ' . $errorCode);
+                throw new InvalidArgumentException('Can not handle error code ' . $this->statusCode);
         }
 
-        if (!empty($_SERVER['HTTP_X_TX_SOLR_IQ'])) {
-            $exception = $this->getDefaultException($errorCode, $message);
-            throw $exception;
-        }
+        $this->handleSolrRequest($this->statusCode, $message);
 
-        $includePath = $GLOBALS['TYPO3_CONF_VARS']['FE'][$configKey] ?? '';
-        if (empty($includePath)) {
-            throw new RuntimeException('Include path is not configured for ' . $configKey);
-        }
-
-        $includePath = str_replace('/typo3conf/ext/', 'EXT:', $includePath);
-        $resolvedIncludePath = GeneralUtility::getFileAbsFileName($includePath);
-        if (empty($resolvedIncludePath)) {
-            throw new RuntimeException('Could not resolve include path: ' . $includePath);
-        }
+        $errorContents = $this->includeErrorFile($this->statusCode);
 
         $headers = $GLOBALS['TYPO3_CONF_VARS']['FE'][$headerConfigKey] ?? '';
         if (empty($headers)) {
             throw new RuntimeException('Header is not configured for ' . $headerConfigKey);
         }
 
-        var_dump($resolvedIncludePath);
-        die();
-
-        ob_start();
-        /** @noinspection PhpIncludeInspection */
-        include $resolvedIncludePath;
-        $errorContent = ob_get_clean();
-
-        $response = new HtmlResponse($errorContent);
+        $response = new HtmlResponse($errorContents);
         $response = $this->applySanitizedHeadersToResponse($response, $headers);
         return $response;
     }
@@ -98,19 +91,5 @@ class PhpIncludeErrorHandler
             }
         }
         return $response;
-    }
-
-    private function getDefaultException(int $errorCode, string $message): StatusException
-    {
-        switch ($errorCode) {
-            case 403:
-            case 404:
-                return new PageNotFoundException($message, 1518472189);
-                break;
-            case 500:
-                return new ServiceUnavailableException($message, 1518472181);
-            default:
-                throw new InvalidArgumentException('Unknown error code: ' . $errorCode);
-        }
     }
 }
