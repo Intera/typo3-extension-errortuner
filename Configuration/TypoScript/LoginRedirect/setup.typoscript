@@ -1,0 +1,22 @@
+
+config.tx_errortuner.loginPageUrl = COA
+config.tx_errortuner.loginPageUrl {
+
+	if.isTrue = {$plugin.tx_errortuner.loginPageTypolinkParameter}
+
+	10 = TEXT
+	10.typolink {
+		parameter = {$plugin.tx_errortuner.loginPageTypolinkParameter}
+		returnLast = url
+
+		additionalParams.cObject = COA
+		additionalParams.cObject.20 = TEXT
+		additionalParams.cObject.20 {
+			data = getIndpEnv : TYPO3_REQUEST_URL
+			rawUrlEncode = 1
+			wrap = &redirect_url=|
+		}
+
+		forceAbsoluteUrl = 1
+	}
+}

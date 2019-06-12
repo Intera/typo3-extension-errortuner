@@ -1,0 +1,6 @@
+
+plugin.tx_errortuner {
+
+	# cat=plugin.tx_errortuner/basic/; type=text; label=Login page typolink parameter: If the user tries to access to a protected page and is not logged in he will be redirected to this page which should contain the login form.
+	loginPageTypolinkParameter = 0
+}
