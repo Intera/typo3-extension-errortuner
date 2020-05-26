@@ -9,6 +9,8 @@ use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Error\Http\PageNotFoundException;
 use TYPO3\CMS\Core\Error\Http\ServiceUnavailableException;
 use TYPO3\CMS\Core\Error\Http\StatusException;
+use TYPO3\CMS\Core\Site\Entity\Site;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 abstract class AbstractPhpIncludeHandler
@@ -30,18 +32,19 @@ abstract class AbstractPhpIncludeHandler
     protected function handleSolrRequest(int $statusCode, string $message): void
     {
         if (!empty($_SERVER['HTTP_X_TX_SOLR_IQ'])) {
-            $exception = $this->getDefaultException($statusCode, $message);
-            throw $exception;
+            throw $this->getDefaultException($statusCode, $message);
         }
     }
 
     protected function includeErrorFile(int $statusCode, string $reasonText): string
     {
         if (!$this->isAdministratorLoggedIn()) {
+            /** @noinspection PhpUnusedLocalVariableInspection Is used in included PHP! */
             $reasonText = '';
         }
 
-        $includePath = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['errortuner']['errorIncludes'][$statusCode] ?? '';
+        $errortunerConfig = $this->getErrorTunerConfiguration();
+        $includePath = $errortunerConfig['errorIncludes'][$statusCode] ?? '';
         if (!$includePath) {
             throw new RuntimeException('Include path is not configured for status ' . $statusCode);
         }
@@ -55,6 +58,31 @@ abstract class AbstractPhpIncludeHandler
         /** @noinspection PhpIncludeInspection */
         include $resolvedIncludePath;
         return ob_get_clean();
+    }
+
+    private function getErrorTunerConfiguration(): array
+    {
+        $globalConfiguration = $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['errortuner'] ?? [];
+        $siteConfiguration = $this->getErrorTunerConfigurationFromSite();
+        ArrayUtility::mergeRecursiveWithOverrule($globalConfiguration, $siteConfiguration);
+        return $globalConfiguration;
+    }
+
+    private function getErrorTunerConfigurationFromSite(): array
+    {
+        $config = [];
+        if (empty($GLOBALS['TYPO3_REQUEST'])) {
+            return $config;
+        }
+
+        $request = $GLOBALS['TYPO3_REQUEST'];
+        $site = $request->getAttribute('site');
+        if (!$site instanceof Site) {
+            return $config;
+        }
+
+        $configuration = $site->getConfiguration();
+        return $configuration['errortuner'] ?? [];
     }
 
     private function isAdministratorLoggedIn()
