@@ -8,26 +8,6 @@ use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 class PhpIncludeUserFunc extends AbstractPhpIncludeHandler
 {
-    /**
-     * @var string
-     */
-    private $currentUrl = '';
-
-    /**
-     * @var array
-     */
-    private $pageAccessFailureReasons = [];
-
-    /**
-     * @var ErrorController|TypoScriptFrontendController
-     */
-    private $parent;
-
-    /**
-     * @var string
-     */
-    private $reasonText = '';
-
     public function handleError404(array $params, $parent): string
     {
         return $this->handleError(404, $params, $parent);
@@ -40,14 +20,10 @@ class PhpIncludeUserFunc extends AbstractPhpIncludeHandler
 
     private function handleError(int $statusCode, array $params, $parent): string
     {
-        $this->currentUrl = $params['currentUrl'];
-        $this->reasonText = $params['reasonText'];
-        $this->pageAccessFailureReasons = $params['pageAccessFailureReasons'];
-        $this->parent = $parent;
+        $reasonText = $params['reasonText'];
 
-        $this->handleSolrRequest($statusCode, $this->reasonText);
+        $this->handleSolrRequest($statusCode, $reasonText);
 
-        $errorContent = $this->includeErrorFile($statusCode, $this->reasonText);
-        return $errorContent;
+        return $this->includeErrorFile($statusCode, $reasonText);
     }
 }
