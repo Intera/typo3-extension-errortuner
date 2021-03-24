@@ -9,5 +9,10 @@
 		"psr-4": {
 			"Int\\Errortuner\\": "Classes"
 		}
+	},
+	"extra": {
+		"typo3/cms": {
+			"extension-key": "errortuner"
+		}
 	}
 }
